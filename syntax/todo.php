@@ -247,6 +247,10 @@ class syntax_plugin_todo_todo extends DokuWiki_Syntax_Plugin {
         unset($data['completeddate']);
         $data['showdate'] = $this->getConf("ShowdateTag");
         $data['username'] = $this->getConf("Username");
+        unset($data['at']);
+        unset($data['pri']);
+        unset($data['redo']);
+        unset($data['label']);
         $options = explode(' ', $todoargs);
         foreach($options as $option) {
             $option = trim($option);
@@ -285,6 +289,26 @@ class syntax_plugin_todo_todo extends DokuWiki_Syntax_Plugin {
                             $data['showdate'] = ($value == 'yes');
                         }
                         break;
+                    case 'at':
+                        if(true) {
+                            $data['at'] = $value;
+                        }
+                        break;
+                    case 'pri':
+                        if(true) {
+                            $data['pri'] = $value;
+                        }
+                        break;
+                    case 'redo':
+                        if(true) {
+                            $data['redo'] = $value;
+                        }
+                        break;
+                    case 'label':
+                        if(true) {
+                            $data['label'] = $value;
+                        }
+                        break;
                 }
             }
         }
@@ -306,6 +330,7 @@ class syntax_plugin_todo_todo extends DokuWiki_Syntax_Plugin {
         $todoindex = $data['todoindex'];
         $todouser = $data['todousers'][0];
         $checked = $data['checked'];
+        $datefmt = $data['DateFormat']?$data['DateFormat']:$this->getConf("DateFormat");
 
         if($data['checkbox']) {
             $return = '<input type="checkbox" class="todocheckbox"'
@@ -332,17 +357,38 @@ class syntax_plugin_todo_todo extends DokuWiki_Syntax_Plugin {
 
         // start/due date
         unset($bg);
-        $now = new DateTime("now");
+        $now = new DateTime("today");
         if(!$checked && (isset($data['start']) || isset($data['due'])) && (!isset($data['start']) || $data['start']<$now) && (!isset($data['due']) || $now<$data['due'])) $bg='todostarted';
         if(!$checked && isset($data['due']) && $now>=$data['due']) $bg='tododue';
-
+        if(!$checked && isset($data['due']) && $now>$data['due']) $bg='todooverdue';
+/*
         // show start/due date
         if($data['showdate'] == 1 && (isset($data['start']) || isset($data['due']))) {
             $return .= '<span class="tododates">[';
-            if(isset($data['start'])) { $return .= $data['start']->format('Y-m-d'); }
+            if(isset($data['start'])) { $return .= $data['start']->format($datefmt); }
             $return .= ' → ';
-            if(isset($data['due'])) { $return .= $data['due']->format('Y-m-d'); }
+            if(isset($data['due'])) { $return .= $data['due']->format($datefmt); }
             $return .= ']</span>';
+        }
+*/
+        if ($data['showdate'] == 1 && isset($data['due'])) {
+          $return .= '<span class="tododate">'.$data['due']->format($datefmt).'</span>';
+        }
+
+        if (isset($data['at'])) {
+          $return .= '<span class="todoat">'.hsc($data['at']).'</span>';
+        }
+
+        if (isset($data['pri'])) {
+          $return .= '<span class="todopri">'.hsc($data['pri']).'</span>';
+        }
+
+        if (isset($data['label'])) {
+          $return .= '<span class="todolabel">'.hsc($data['label']).'</span>';
+        }
+
+        if (isset($data['redo'])) {
+          $return .= '<span class="todoredo">&crarr;</span>';
         }
 
         $spanclass = 'todotext';

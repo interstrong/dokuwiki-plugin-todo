@@ -66,6 +66,10 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
             'checkbox' => $this->getConf("Checkbox"),
             'username' => $this->getConf("Username"),
             'short' => false,
+            'priority' => false,
+            'setat' => false,
+            'labeled' => false,
+            'DateFormat' => $this->getConf("DateFormat"),
         );
         $allowedvalues = array('yes', 'no');
         foreach($options as $option) {
@@ -152,6 +156,18 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
                 case 'completedat':
                     list($data['completedat']) = $this->analyseDate($value);
                     break;
+                case 'setat':
+                    $data['setat'] = $value;
+                    break;
+                case 'priority':
+                    $data['priority'] = $value;
+                    break;
+                case 'labeled':
+                    $data['labeled'] = $value;
+                    break;
+                case 'DateFormat':
+                    $data['DateFormat'] = hsc($value);
+                    break;
              }
         }
         return $data;
@@ -178,6 +194,7 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
         // search(&$data, $base,            $func,                       $opts,$dir='',$lvl=1,$sort='natural')
         search($todopages, $conf['datadir'], array($this, 'search_todos'), $opts); //browse wiki pages with callback to search_pattern
 
+/*
         $todopages = $this->filterpages($todopages, $data);
 
         if($data['short']) {
@@ -185,6 +202,15 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
         } else {
             $this->htmlTodoTable($renderer, $todopages, $data);
         }
+*/
+        $todos = $this->filtertodos($todopages, $data);
+        uasort($todos,function($a,$b){
+            $r = strnatcmp(isset($a['due'])?$a['due']->format('Ymd'):'',isset($b['due'])?$b['due']->format('Ymd'):'');
+            if ($r==0) $r = strnatcmp(isset($a['at'])?$a['at']:'',isset($b['at'])?$b['at']:'');
+            if ($r==0) $r = strnatcmp(isset($b['pri'])?$b['pri']:'',isset($a['pri'])?$a['pri']:'');
+            if ($r==0) $r = strnatcmp($a['todotitle'],$b['todotitle']);
+            return $r; });
+        $this->htmlTodoTable2($renderer, $todos, $data);
 
         return true;
     }
@@ -264,7 +290,7 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
         if ($parsepage = $ns == 'all') {
             // Always return the todo pages
         } elseif ($ns == '/') {
-            // Only return the todo page if it's in the root namespace 
+            // Only return the todo page if it's in the root namespace
             $parsepage = strpos($item, ':') === FALSE;
         } elseif ($wildsubns) {
             $p = strpos($item.':', ':', $len+1);
@@ -278,10 +304,10 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
     }
 
     /**
-     * Expand assignee-placeholders 
-     * 
-     * @param $user	String to be worked on
-     * @return	expanded string
+     * Expand assignee-placeholders
+     *
+     * @param $user String to be worked on
+     * @return  expanded string
      */
     private function __todolistExpandAssignees($user) {
         global $USERINFO;
@@ -289,7 +315,7 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
             return $_SERVER['REMOTE_USER'];
         }
         // @date 20140317 le: check for logged in user email address
-        if( $user == '@@MAIL@@' && isset( $USERINFO['mail'] ) ) {  
+        if( $user == '@@MAIL@@' && isset( $USERINFO['mail'] ) ) {
             return $USERINFO['mail'];
         }
         return  $user;
@@ -297,9 +323,9 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
 
     /**
      * Trim input if it's a user
-     * 
-     * @param $user	String to be worked on
-     * @return	trimmed string
+     *
+     * @param $user String to be worked on
+     * @return  trimmed string
      */
     private function __todolistTrimUser($user) {
         //placeholder (inspired by replacement-patterns - see https://www.dokuwiki.org/namespace_templates#replacement_patterns)
@@ -337,6 +363,35 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
     return null;
     }
 
+    /**
+     * filter the todos
+     *
+     * @param $todopages array pages with all todoitems
+     * @param $data      array listing parameters
+     * @return array filtered todos
+     */
+    private function filtertodos($todopages, $data) {
+        $result = array();
+        if(count($todopages)>0) {
+            foreach($todopages as $page) {
+                $todos = array();
+                // contains 3 arrays: an array with complete matches and 2 arrays with subpatterns
+                foreach($page['matches'][1] as $todoindex => $todomatch) {
+                    $todo = array_merge(
+                        array(
+                          'todopageid' => $page['id'],
+                          'todotitle' => trim($page['matches'][2][$todoindex]),
+                          'todoindex' => $todoindex),
+                      $this->parseTodoArgs($todomatch),
+                      $data);
+
+                    if($this->isRequestedTodo($todo)) { $result[] = $todo; }
+                }
+            }
+            return $result;
+        }
+    return null;
+    }
 
     private function htmlShort($R, $todopages, $data) {
         $done = 0; $todo = 0;
@@ -365,13 +420,13 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
     private function htmlTodoTable($R, $todopages, $data) {
         $R->table_open();
         foreach($todopages as $page) {
-       	    if ($data['header']!='none') {
+            if ($data['header']!='none') {
                 $R->tablerow_open();
                 $R->tableheader_open();
                 $R->internallink($page['id'], ($data['header']=='firstheader' ? p_get_first_heading($page['id']) : $page['id']));
                 $R->tableheader_close();
                 $R->tablerow_close();
-       	    }
+            }
             foreach($page['todos'] as $todo) {
 //echo "<pre>";var_dump($todo);echo "</pre>";
                 $R->tablerow_open();
@@ -380,6 +435,26 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
                 $R->tablecell_close();
                 $R->tablerow_close();
             }
+        }
+        $R->table_close();
+    }
+
+    /**
+     * Create html for table with todos
+     *
+     * @param Doku_Renderer_xhtml $R
+     * @param array $todos
+     * @param array $data array with rendering options
+     */
+    private function htmlTodoTable2($R, $todos, $data) {
+        $R->table_open();
+        foreach($todos as $todo) {
+            //echo "<pre>";var_dump($todo);echo "</pre>";
+            $R->tablerow_open();
+            $R->tablecell_open();
+            $R->doc .= $this->createTodoItem($R, $todo['todopageid'], array_merge($todo, $data));
+            $R->tablecell_close();
+            $R->tablerow_close();
         }
         $R->table_close();
     }
@@ -467,7 +542,26 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
             $condition4 = $condition4 && new DateTime($data['completedat']) == $data['completeddate'];
         }
 
-        return $condition1 AND $condition2 AND $condition3 AND $condition4;
+        //at status
+        $conditionAT   = $data['setat'] === false
+                         || ($data['setat']=='*' && isset($data['at']))
+                         || ($data['setat']=='!' && !isset($data['at']))
+                         ;
+
+        //pri status
+        $conditionPRI  = $data['priority'] === false
+                         || $data['priority'] <= $data['pri']
+                         || ($data['priority']=='!' && !isset($data['pri']))
+                         ;
+
+        //label status
+        $conditionLBL  = $data['labeled'] === false
+                         || $data['labeled'] == $data['label']
+                         || ($data['labeled']=='*' && isset($data['label']))
+                         || ($data['labeled']=='!' && !isset($data['label']))
+                         ;
+
+        return $condition1 AND $condition2 AND $condition3 AND $condition4 AND $conditionPRI AND $conditionAT AND $conditionLBL;
     }
 
 

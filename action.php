@@ -29,13 +29,47 @@ class action_plugin_todo extends DokuWiki_Action_Plugin {
      * Inserts the toolbar button
      */
     public function insert_button(&$event, $param) {
+/*
         $event->data[] = array(
             'type' => 'format',
             'title' => $this->getLang('qb_todobutton'),
             'icon' => '../../plugins/todo/todo.png',
 // key 't' is already used for going to top of page, bug #76
-//	    'key' => 't',
+//      'key' => 't',
             'open' => '<todo>',
+            'close' => '</todo>',
+            'block' => false,
+        );
+*/
+        $event->data[] = array(
+            'type' => 'format',
+            'title' => $this->getLang('qb_todobutton_appo'),
+            'icon' => '../../plugins/todo/todo.png',
+            'open' => '<todo due:2018-18-18 at:12:00>',
+            'close' => '</todo>',
+            'block' => false,
+        );
+        $event->data[] = array(
+            'type' => 'format',
+            'title' => $this->getLang('qb_todobutton_todo'),
+            'icon' => '../../plugins/todo/todo.png',
+            'open' => '<todo due:2018-18-18>',
+            'close' => '</todo>',
+            'block' => false,
+        );
+            $event->data[] = array(
+            'type' => 'format',
+            'title' => $this->getLang('qb_todobutton_deed'),
+            'icon' => '../../plugins/todo/todo.png',
+            'open' => '<todo>',
+            'close' => '</todo>',
+            'block' => false,
+        );
+        $event->data[] = array(
+            'type' => 'format',
+            'title' => $this->getLang('qb_todobutton_milestone'),
+            'icon' => '../../plugins/todo/todo.png',
+            'open' => '<todo label:MS due:2018-18-18>',
             'close' => '</todo>',
             'block' => false,
         );
@@ -140,7 +174,8 @@ class action_plugin_todo extends DokuWiki_Action_Plugin {
                 $todoText = substr( $wikitext, $todoTagEndPos, $todoTextEndPos-$todoTagEndPos );
                 // update text
                 $oldTag = substr($wikitext, $todoTagStartPos, ($todoTagEndPos - $todoTagStartPos));
-                $newTag = $this->_buildTodoTag($oldTag, $checked);
+                //$newTag = $this->_buildTodoTag($oldTag, $checked);
+                $newTag = $this->_buildTodoTag2($oldTag, $checked);
                 $wikitext = substr_replace($wikitext, $newTag, $todoTagStartPos, ($todoTagEndPos - $todoTagStartPos));
 
                 // save Update (Minor)
@@ -185,7 +220,81 @@ class action_plugin_todo extends DokuWiki_Action_Plugin {
         return $newTag;
     }
 
+    /**
+     * @brief gets current to-do tag and returns a new one depending on checked and redo
+     * @param $todoTag    string current to-do tag e.g. <todo @user>
+     * @param $checked    int check flag (todo completed=1, todo uncompleted=0)
+     * @return string new to-do completed or uncompleted tag e.g. <todo @user #> with redo support
+     */
+    private function _buildTodoTag2($todoTag, $checked) {
+        $user = '';
+        $m = array();
+        $redo = false;
+        $due = false;
+        if($checked == 1) {
+            if(!empty($_SERVER['REMOTE_USER'])) { $user = $_SERVER['REMOTE_USER']; }
+            if(preg_match('/redo:([0-9,a-zA-Z\+:]+)/',$todoTag,$m)) {
+                $redo = $m[1];
+                if(preg_match('/due:([0-9\-]+)/',$todoTag,$m)) {
+                    $due = date_modify(date_create($m[1]),$this->_parseRedo($redo,$m[1]));
+                } else {
+                    $due = date_create(date('Y-m-d'));
+                }
+                $newTag = preg_replace('/due:[0-9\-]+/', 'due:'.date_format($due,'Y-m-d'), $todoTag);
+            } else {
+                $newTag = preg_replace('/>/', ' #'.$user.':'.date('Y-m-d').'>', $todoTag);
+            }
+        } else {
+            $newTag = preg_replace('/[\s]*[#].*>/', '>', $todoTag);
+        }
+        return $newTag;
+    }
 
+    private function _parseRedo($redoText,$dueText) {
+        $due = strtotime($dueText); if (!$due) return '';
+        if (strpos($redoText,'m:+')===0) {
+            return '+'.substr($redoText,3).' month';
+        }
+        else if (strpos($redoText,'m:')===0) {
+            $a = explode(',',substr($redoText,2));
+            if (sizeof($a)==0) return '';
+            sort($a,SORT_NUMERIC);
+            $t = (int)date('j',$due);
+            foreach($a as $i) if ((int)$i>$t) return $i.' '.date('M',$due);
+            return $a[0].' '.date('M',strtotime('next month',$due));
+        }
+        else if (strpos($redoText,'w:+')===0) {
+            return '+'.substr($redoText,3).' week';
+        }
+        else if (strpos($redoText,'w:')===0) {
+            $b = explode(',',substr($redoText,2));
+            if (sizeof($b)==0) return '';
+            $a = array();
+            foreach($b as $i) {
+                if ($i=='mo' or $i=='mon') $a[] = 1;
+                if ($i=='tu' or $i=='tue') $a[] = 2;
+                if ($i=='we' or $i=='wed') $a[] = 3;
+                if ($i=='th' or $i=='thu') $a[] = 4;
+                if ($i=='fr' or $i=='fri') $a[] = 5;
+                if ($i=='sa' or $i=='sat') $a[] = 6;
+                if ($i=='su' or $i=='sun') $a[] = 0;
+                if ($i==7) $a[] = 0;
+                else $a[] = (int)$i;
+            };
+            sort($a,SORT_NUMERIC);
+            $s = 'sunmontuewedthufrisat';
+            $t = (int)date('w',$due);
+            foreach($a as $i) if ($i>$t) return 'next '.substr($s,$i*3,3);
+            return 'next '.substr($s,$a[0]*3,3);
+        }
+        else if (strpos($redoText,'d:+')===0) {
+            return '+'.substr($redoText,3).' day';
+        }
+        else if (strpos($redoText,'+')===0) {
+            return '+'.substr($redoText,1).' day';
+        }
+        else return '+'.$redoText.' day';
+    }
     /**
      * Find position of $occurance-th $needle in haystack
      */

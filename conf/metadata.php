@@ -15,5 +15,6 @@ $meta['Header'] = array('multichoice', '_choices' => array('id','firstheader','n
 $meta['Username'] = array('multichoice', '_choices' => array('user','real','none'));
 $meta['ShowdateTag'] = array('onoff');
 $meta['ShowdateList'] = array('onoff');
+$meta['DateFormat'] = array('string');
 
 //Setup VIM: ex: et ts=2 enc=utf-8 :
