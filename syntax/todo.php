@@ -332,14 +332,7 @@ class syntax_plugin_todo_todo extends DokuWiki_Syntax_Plugin {
         $checked = $data['checked'];
         $datefmt = $data['DateFormat']?$data['DateFormat']:$this->getConf("DateFormat");
 
-        if($data['checkbox']) {
-            $return = '<input type="checkbox" class="todocheckbox"'
-            . ' data-index="' . $todoindex . '"'
-            . ' data-date="' . hsc(@filemtime(wikiFN($ID))) . '"'
-            . ' data-pageid="' . hsc($ID) . '"'
-            . ' data-strikethrough="' . ($this->getConf("Strikethrough") ? '1' : '0') . '"'
-            . ($checked ? 'checked="checked"' : '') . ' /> ';
-        }
+        $return = '';
 
         // Username of first todouser in list
         if($todouser && $data['username'] != 'none') {
@@ -375,8 +368,17 @@ class syntax_plugin_todo_todo extends DokuWiki_Syntax_Plugin {
           $return .= '<span class="tododate">'.$data['due']->format($datefmt).'</span>';
         }
 
-        if (isset($data['at'])) {
+        if ($data['showat'] == true && isset($data['at'])) {
           $return .= '<span class="todoat">'.hsc($data['at']).'</span>';
+        }
+
+        if($data['checkbox']) {
+            $return .= '<input type="checkbox" class="todocheckbox"'
+            . ' data-index="' . $todoindex . '"'
+            . ' data-date="' . hsc(@filemtime(wikiFN($ID))) . '"'
+            . ' data-pageid="' . hsc($ID) . '"'
+            . ' data-strikethrough="' . ($this->getConf("Strikethrough") ? '1' : '0') . '"'
+            . ($checked ? 'checked="checked"' : '') . ' /> ';
         }
 
         if (isset($data['pri'])) {

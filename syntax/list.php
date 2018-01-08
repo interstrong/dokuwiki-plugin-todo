@@ -63,6 +63,7 @@ class syntax_plugin_todo_list extends syntax_plugin_todo_todo {
             'completeduserlist' => 'all',
             'ns' => 'all',
             'showdate' => $this->getConf("ShowdateList"),
+            'showat' => true,
             'checkbox' => $this->getConf("Checkbox"),
             'username' => $this->getConf("Username"),
             'short' => false,
