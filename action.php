@@ -271,15 +271,14 @@ class action_plugin_todo extends DokuWiki_Action_Plugin {
             if (sizeof($b)==0) return '';
             $a = array();
             foreach($b as $i) {
-                if ($i=='mo' or $i=='mon') $a[] = 1;
-                if ($i=='tu' or $i=='tue') $a[] = 2;
-                if ($i=='we' or $i=='wed') $a[] = 3;
-                if ($i=='th' or $i=='thu') $a[] = 4;
-                if ($i=='fr' or $i=='fri') $a[] = 5;
-                if ($i=='sa' or $i=='sat') $a[] = 6;
-                if ($i=='su' or $i=='sun') $a[] = 0;
-                if ($i==7) $a[] = 0;
-                else $a[] = (int)$i;
+                     if ($i=='mo' or $i=='mon') $a[] = 1;
+                else if ($i=='tu' or $i=='tue') $a[] = 2;
+                else if ($i=='we' or $i=='wed') $a[] = 3;
+                else if ($i=='th' or $i=='thu') $a[] = 4;
+                else if ($i=='fr' or $i=='fri') $a[] = 5;
+                else if ($i=='sa' or $i=='sat') $a[] = 6;
+                else if ($i=='su' or $i=='sun') $a[] = 0;
+                else { $i = (int)$i; $a[] = ($i>=0 or $i<7)?$i:0; };
             };
             sort($a,SORT_NUMERIC);
             $s = 'sunmontuewedthufrisat';

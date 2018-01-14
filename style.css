@@ -15,10 +15,10 @@ span.todostarted {  }
 span.tododue {  }
 span.todooverdue { background:#EAA; }
 span.todopri { background:#EAA; color:white; font-weight:bold; padding:0 2px; margin-right:2px; }
-span.todolabel { background:yellowgreen; color:yellow; font-weight:normal; padding:1px 4px; margin-right:2px; font-size:78%; }
+span.todolabel { background:yellowgreen; color:yellow; font-weight:normal; padding:1px 4px; margin-right:2px; font-size:x-small; }
 span.todoredo { color:#EAA; font-weight:bold; margin-right:0px; }
-span.todoat { color:grey; margin-right:2px; font-size:87%; font-stretch: ultra-condensed; }
-span.tododate { color:grey; margin-right:2px; font-size:5px; }
+span.todoat { color:grey; margin-right:2px; font-size:x-small; font-stretch: ultra-condensed; }
+span.tododate { color:grey; margin-right:2px; font-size:x-small; }
 
 .todocheckbox { background:red; border:1px solid red; }
 .todoaskoredo { background:red; border:1px solid red; }
